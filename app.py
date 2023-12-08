@@ -16,28 +16,18 @@ def create_table(cursor, table_name):
     except mysql.connector.Error as e:
         print(f"Error creating table: {e}")
 
-def edit_table_name(cursor, available_tables):
+def edit_table_name(cursor, old_table_name, new_table_name):
     try:
-        # Show available tables
-        print("Available Tables:")
-        for idx, table in enumerate(available_tables, start=1):
-            print(f"{idx}. {table}")
+        # Check if the old table exists before attempting to rename
+        if not check_table(cursor, old_table_name):
+            print(f"Table '{old_table_name}' does not exist.")
+            return
 
-        # Prompt user to choose a table
-        table_index = int(input("Enter the index of the table to be edited: ")) - 1
-
-        if 0 <= table_index < len(available_tables):
-            old_table_name = available_tables[table_index]
-
-            # Prompt user for the new table name
-            new_table_name = input("Enter the new table name: ")
-
-            # Execute the table name change
-            cursor.execute(f"ALTER TABLE {old_table_name} RENAME TO {new_table_name}")
-            print(f"Table name '{old_table_name}' changed to '{new_table_name}' successfully.")
-        else:
-            print("Invalid table index.")
-
+        # Execute the table name change using a parameterized query
+        update_query = "ALTER TABLE {} RENAME TO {}".format(old_table_name, new_table_name)
+        cursor.execute(update_query)
+        print(f"Table name '{old_table_name}' changed to '{new_table_name}' successfully.")
+        connection.commit()  # Commit the changes
     except mysql.connector.Error as e:
         print(f"Error editing table name: {e}")
 
@@ -73,16 +63,26 @@ def insert_data(cursor, table_name):
 def edit_data(cursor, table_name, isbn, new_title):
     # Function to edit data in the specified table
     try:
-        cursor.execute(f"UPDATE {table_name} SET judul = '{new_title}' WHERE ISBN = '{isbn}'")
+        update_query = f"UPDATE {table_name} SET judul = %s WHERE ISBN = %s"
+        cursor.execute(update_query, (new_title, isbn))
         print(f"Data in the '{table_name}' table edited successfully.")
+        connection.commit()  # Commit the changes
     except mysql.connector.Error as e:
         print(f"Error editing data: {e}")
 
+
 def check_table(cursor, table_name):
-    # Function to check if the table exists
+    # Function to check if the table exists and display all tables
     try:
-        cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
-        return cursor.fetchone() is not None
+        cursor.execute("SHOW TABLES")
+        all_tables = [table[0] for table in cursor.fetchall()]
+        
+        if table_name in all_tables:
+            print(f"Table '{table_name}' exists.")
+            return True
+        else:
+            print(f"Table '{table_name}' does not exist.")
+            return False
     except mysql.connector.Error as e:
         print(f"Error checking table existence: {e}")
         return False
