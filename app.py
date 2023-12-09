@@ -25,6 +25,7 @@ def edit_table_name(cursor, old_table_name, new_table_name):
 
         # Execute the table name change using a parameterized query
         update_query = "ALTER TABLE {} RENAME TO {}".format(old_table_name, new_table_name)
+        
         cursor.execute(update_query)
         print(f"Table name '{old_table_name}' changed to '{new_table_name}' successfully.")
         connection.commit()  # Commit the changes
